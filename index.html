@@ -35,6 +35,26 @@
             viewer.scene.addPointCloud(pointcloud);
             viewer.fitToScreen();
         });
+
+        Potree.loadPointCloudMetadata("/myPC/ept-build.json", "ept-build").then(function (metadata) {
+            viewer.setPointCloudMetadata(metadata);
+        });
+
+        Potree.loadPointCloudMetadata("/myPC/ept.json", "ept").then(function (metadata) {
+            viewer.setPointCloudMetadata(metadata);
+        });
+
+        Potree.loadPointCloudMetadata("/myPC/ept-hierarchy/0-0-0-0.json", "0-0-0-0").then(function (metadata) {
+            viewer.setPointCloudMetadata(metadata);
+        });
+
+        Potree.loadPointCloudMetadata("/myPC/ept-sources/manifest.json", "manifest").then(function (metadata) {
+            viewer.setPointCloudMetadata(metadata);
+        });
+
+        Potree.loadPointCloudMetadata("/myPC/ept-sources/odm_georeferenced_model.json", "odm_georeferenced_model").then(function (metadata) {
+            viewer.setPointCloudMetadata(metadata);
+        });
     </script>
 </body>
 </html>
