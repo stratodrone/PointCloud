@@ -35,6 +35,9 @@
             viewer.scene.addPointCloud(pointcloud);
             viewer.fitToScreen();
         });
+          .catch(function (error) {
+              console.error("Failed to load point cloud:", error);
+          });
 
         Potree.loadPointCloudMetadata("/myPC/ept-build.json", "ept-build").then(function (metadata) {
             viewer.setPointCloudMetadata(metadata);
@@ -55,6 +58,10 @@
         Potree.loadPointCloudMetadata("/myPC/ept-sources/odm_georeferenced_model.json", "odm_georeferenced_model").then(function (metadata) {
             viewer.setPointCloudMetadata(metadata);
         });
+
+          .catch(function (error) {
+             console.error("Failed to load point cloud metadata:", error);
+          });
 
     </script>
 </body>
