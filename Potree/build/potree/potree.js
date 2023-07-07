@@ -56752,6 +56752,17 @@
 			this.vectors.push(vector);
 		}
 
+		hasColors(){
+			for (let name in this.attributes) {
+				let pointAttribute = this.attributes[name];
+				if (pointAttribute.name === PointAttributeNames.COLOR_PACKED) {
+					return true;
+				}
+			}
+
+			return false;
+		};
+
 		hasNormals(){
 			for (let name in this.attributes) {
 				let pointAttribute = this.attributes[name];
@@ -56826,7 +56837,7 @@
 				this.projection = info.srs.authority + ':' + info.srs.horizontal;
 			}
 
-			if (info.srs && info.srs.wkt) {
+			if (info.srs.wkt) {
 				if (!this.projection) this.projection = info.srs.wkt;
 				else this.fallbackProjection = info.srs.wkt;
 			}
@@ -60125,6 +60136,17 @@ void main() {
 			return texture; 
 		}
 
+		static generateMatcapTexture (matcap) {
+		var url = new URL(Potree.resourcePath + "/textures/matcap/" + matcap).href;
+		let texture = new TextureLoader().load( url );
+			texture.magFilter = texture.minFilter = LinearFilter; 
+			texture.needsUpdate = true;
+			// PotreeConverter_1.6_2018_07_29_windows_x64\PotreeConverter.exe autzen_xyzrgbXYZ_ascii.xyz -f xyzrgbXYZ -a RGB NORMAL -o autzen_xyzrgbXYZ_ascii_a -p index --overwrite
+			// Switch matcap texture on the fly : viewer.scene.pointclouds[0].material.matcap = 'matcap1.jpg'; 
+			// For non power of 2, use LinearFilter and dont generate mipmaps, For power of 2, use NearestFilter and generate mipmaps : matcap2.jpg 1 2 8 11 12 13
+			return texture; 
+		}
+
 		disableEvents(){
 			if(this._hiddenListeners === undefined){
 				this._hiddenListeners = this._listeners;
@@ -60513,7 +60535,7 @@ void main() {
 
 				let density = node.geometryNode.density;
 				
-				if(typeof density === "number" && !Number.isNaN(density)){
+				if(typeof density === "number"){
 					let lodOffset = Math.log2(density) / 2 - 1.5;
 
 					let offsetUint8 = (lodOffset + 10) * 10;
@@ -66521,13 +66543,6 @@ void main() {
 					current.byteSize = byteSize;
 					current.numPoints = numPoints;
 				}
-
-				if(current.byteSize === 0n){
-					// workaround for issue #1125
-					// some inner nodes erroneously report >0 points even though have 0 points
-					// however, they still report a byteSize of 0, so based on that we now set node.numPoints to 0
-					current.numPoints = 0;
-				}
 				
 				current.nodeType = type;
 
@@ -68489,13 +68504,13 @@ void main() {
 				if (cancel.removeLastMarker) {
 					measure.removeMarker(measure.points.length - 1);
 				}
-				domElement.removeEventListener('mouseup', insertionCallback, false);
+				domElement.removeEventListener('mouseup', insertionCallback, true);
 				this.viewer.removeEventListener('cancel_insertions', cancel.callback);
 			};
 
 			if (measure.maxMarkers > 1) {
 				this.viewer.addEventListener('cancel_insertions', cancel.callback);
-				domElement.addEventListener('mouseup', insertionCallback, false);
+				domElement.addEventListener('mouseup', insertionCallback, true);
 			}
 
 			measure.addMarker(new Vector3(0, 0, 0));
@@ -68880,12 +68895,12 @@ void main() {
 
 			cancel.callback = e => {
 				profile.removeMarker(profile.points.length - 1);
-				domElement.removeEventListener('mouseup', insertionCallback, false);
+				domElement.removeEventListener('mouseup', insertionCallback, true);
 				this.viewer.removeEventListener('cancel_insertions', cancel.callback);
 			};
 
 			this.viewer.addEventListener('cancel_insertions', cancel.callback);
-			domElement.addEventListener('mouseup', insertionCallback, false);
+			domElement.addEventListener('mouseup', insertionCallback, true);
 
 			profile.addMarker(new Vector3(0, 0, 0));
 			this.viewer.inputHandler.startDragging(
@@ -72445,184 +72460,6 @@ void main() {
 
 	}
 
-	/**
-	 *
-	 * @author roy.mdr / http://...
-	 *
-	 */
-
-	class DXFProfileExporter {
-
-		static toXYZ(points, flatten = false) {
-
-			/*
-			points: {
-				...
-				data: {
-					mileage: [0, 1, 2...], -> one per point
-					position: [0, 0, 0, 1, 1, 1, 2, 2, 2...], -> X, Y, Z
-					rgba: [0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2...] -> R, G, B, A
-				},
-				numPoints: Int
-			}
-			*/
-
-			const pointsXYZ = {
-				x: [],
-				y: [],
-				z: [],
-				minX:  Number.MAX_VALUE,
-				minY:  Number.MAX_VALUE,
-				minZ:  Number.MAX_VALUE,
-				maxX: -Number.MAX_VALUE,
-				maxY: -Number.MAX_VALUE,
-				maxZ: -Number.MAX_VALUE,
-				numPoints: 0
-			};
-
-			const pData    = points.data;
-			const pMileage = pData.mileage;
-			const pCoords  = pData.position;
-			const pColor   = pData.rgba;
-
-			for (let pIx = 0; pIx < points.numPoints; pIx++) {
-
-				const poMileage = pMileage[pIx];
-				const poCoordX  = pCoords[ ((pIx * 3) + 0) ];
-				const poCoordY  = pCoords[ ((pIx * 3) + 1) ];
-				const poCoordZ  = pCoords[ ((pIx * 3) + 2) ];
-				// const poColorR  = pColor[ ((pIx * 4) + 0) ];
-				// const poColorG  = pColor[ ((pIx * 4) + 1) ];
-				// const poColorB  = pColor[ ((pIx * 4) + 2) ];
-				// const poColorA  = pColor[ ((pIx * 4) + 3) ];
-
-				if (flatten === true) {
-
-					pointsXYZ.x.push(poMileage);
-					pointsXYZ.y.push(0);
-					pointsXYZ.z.push(poCoordZ);
-
-					// Get boundaries X
-					if (pointsXYZ.maxX < poMileage) pointsXYZ.maxX = poMileage;
-					if (pointsXYZ.minX > poMileage) pointsXYZ.minX = poMileage;
-
-					// Get boundaries Z
-					if (pointsXYZ.maxZ < poCoordZ) pointsXYZ.maxZ = poCoordZ;
-					if (pointsXYZ.minZ > poCoordZ) pointsXYZ.minZ = poCoordZ;
-
-				} else {
-
-					pointsXYZ.x.push(poCoordX);
-					pointsXYZ.y.push(poCoordY);
-					pointsXYZ.z.push(poCoordZ);
-
-					// Get boundaries X
-					if (pointsXYZ.maxX < poCoordX) pointsXYZ.maxX = poCoordX;
-					if (pointsXYZ.minX > poCoordX) pointsXYZ.minX = poCoordX;
-
-					// Get boundaries Y
-					if (pointsXYZ.maxY < poCoordY) pointsXYZ.maxY = poCoordY;
-					if (pointsXYZ.minY > poCoordY) pointsXYZ.minY = poCoordY;
-
-					// Get boundaries Z
-					if (pointsXYZ.maxZ < poCoordZ) pointsXYZ.maxZ = poCoordZ;
-					if (pointsXYZ.minZ > poCoordZ) pointsXYZ.minZ = poCoordZ;
-
-				}
-
-			}
-
-			if (flatten === true) {
-				// Set boundaries Y
-				pointsXYZ.maxY = 0;
-				pointsXYZ.minY = 0;
-			}
-
-			pointsXYZ.numPoints = points.numPoints;
-
-			return pointsXYZ;
-		}
-
-		static plotPCloudPoint(x, y, z) {
-
-			const dxfSection = `0
-POINT
-8
-layer_pointCloud
-10
-${x}
-20
-${y}
-30
-${z}
-`;
-
-			return dxfSection;
-		}
-
-		static toString(points, flatten = false) {
-
-			const pCloud = DXFProfileExporter.toXYZ(points, flatten);
-
-			const dxfHeader = `999
-DXF created from potree
-0
-SECTION
-2
-HEADER
-9
-$ACADVER
-1
-AC1006
-9
-$INSBASE
-10
-0.0
-20
-0.0
-30
-0.0
-9
-$EXTMIN
-10
-${pCloud.minX}
-20
-${pCloud.minY}
-30
-${pCloud.minZ}
-9
-$EXTMAX
-10
-${pCloud.maxX}
-20
-${pCloud.maxY}
-30
-${pCloud.maxZ}
-0
-ENDSEC
-`;
-
-			let dxfBody = `0
-SECTION
-2
-ENTITIES
-`;
-
-			for (let i = 0; i < pCloud.numPoints; i++) {
-				dxfBody += DXFProfileExporter.plotPCloudPoint(pCloud.x[i], pCloud.y[i], pCloud.z[i]);
-			}
-
-			dxfBody += `0
-ENDSEC
-`;
-
-			const dxf = dxfHeader + dxfBody + '0\nEOF';
-
-			return dxf;
-		}
-
-	}
-
 	class CSVExporter {
 		static toString (points) {
 			let string = '';
@@ -72805,8 +72642,8 @@ ENDSEC
 					view.setUint16(boffset + 18, points.data.pointSourceID[i]);
 				}
 
-				if (points.data.rgba || points.data.color) {
-					let rgba = points.data.rgba ?? points.data.color;
+				if (points.data.rgba) {
+					let rgba = points.data.rgba;
 					view.setUint16(boffset + 20, (rgba[4 * i + 0] * 255), true);
 					view.setUint16(boffset + 22, (rgba[4 * i + 1] * 255), true);
 					view.setUint16(boffset + 24, (rgba[4 * i + 2] * 255), true);
@@ -73071,12 +72908,6 @@ ENDSEC
 			let backwardIcon = `${exports.resourcePath}/icons/arrow_down.svg`;
 			$('#potree_profile_move_backward').attr('src', backwardIcon);
 
-			let dxf2DIcon = `${exports.resourcePath}/icons/file_dxf_2d.svg`;
-			$('#potree_download_dxf2D_icon').attr('src', dxf2DIcon);
-
-			let dxf3DIcon = `${exports.resourcePath}/icons/file_dxf_3d.svg`;
-			$('#potree_download_dxf3D_icon').attr('src', dxf3DIcon);
-
 			let csvIcon = `${exports.resourcePath}/icons/file_csv_2d.svg`;
 			$('#potree_download_csv_icon').attr('src', csvIcon);
 
@@ -73293,25 +73124,19 @@ ENDSEC
 				this.hide();
 			});
 
-			let getProfilePoints = (truePosition) => {
+			let getProfilePoints = () => {
 				let points = new Points$1();
 				
 				for(let [pointcloud, entry] of this.pointclouds){
 					for(let pointSet of entry.points){
 
 						let originPos = pointSet.data.position;
-						let truePointPosition = new Float64Array(originPos);
+						let trueElevationPosition = new Float32Array(originPos);
 						for(let i = 0; i < pointSet.numPoints; i++){
-
-							if (truePosition === true) {
-								truePointPosition[3 * i + 0] += pointcloud.position.x;
-								truePointPosition[3 * i + 1] += pointcloud.position.y;
-							}
-
-							truePointPosition[3 * i + 2] += pointcloud.position.z;
+							trueElevationPosition[3 * i + 2] += pointcloud.position.z;
 						}
 
-						pointSet.data.position = truePointPosition;
+						pointSet.data.position = trueElevationPosition;
 						points.add(pointSet);
 						pointSet.data.position = originPos;
 					}
@@ -73320,29 +73145,9 @@ ENDSEC
 				return points;
 			};
 
-			$('#potree_download_dxf2D_icon').click(() => {
-				
-				const points = getProfilePoints();
-
-				const string = DXFProfileExporter.toString(points, true);
-
-				const blob = new Blob([string], {type: "text/string"});
-				$('#potree_download_profile_dxf2D_link').attr('href', URL.createObjectURL(blob));
-			});
-
-			$('#potree_download_dxf3D_icon').click(() => {
-				
-				const points = getProfilePoints(true);
-
-				const string = DXFProfileExporter.toString(points);
-
-				const blob = new Blob([string], {type: "text/string"});
-				$('#potree_download_profile_dxf3D_link').attr('href', URL.createObjectURL(blob));
-			});
-
 			$('#potree_download_csv_icon').click(() => {
 				
-				let points = getProfilePoints(true);
+				let points = getProfilePoints();
 
 				let string = CSVExporter.toString(points);
 
@@ -73352,7 +73157,7 @@ ENDSEC
 
 			$('#potree_download_las_icon').click(() => {
 
-				let points = getProfilePoints(true);
+				let points = getProfilePoints();
 
 				let buffer = LASExporter.toLAS(points);
 
@@ -73498,6 +73303,16 @@ ENDSEC
 			let sm = new MeshNormalMaterial();
 			this.pickSphere = new Mesh(sg, sm);
 			this.scene.add(this.pickSphere);
+
+			{
+				const sg = new SphereGeometry(2);
+				const sm = new MeshNormalMaterial();
+				const s = new Mesh(sg, sm);
+
+				s.position.set(589530.450, 231398.860, 769.735);
+
+				this.scene.add(s);
+			}
 
 			this.viewerPickSphere = new Mesh(sg, sm);
 		}
@@ -77555,7 +77370,7 @@ ENDSEC
 			viewer.inputHandler.addInputListener(this);
 
 			this.addEventListener("mousedown", () => {
-				if(currentlyHovered && currentlyHovered.image360){
+				if(currentlyHovered){
 					this.focus(currentlyHovered.image360);
 				}
 			});
@@ -80070,7 +79885,7 @@ ENDSEC
 			{ // REMOVE CLIPPING TOOLS
 				clippingToolBar.append(this.createToolIcon(
 					Potree.resourcePath + "/icons/remove.svg",
-					"[title]tt.remove_all_clipping_volumes",
+					"[title]tt.remove_all_measurement",
 					() => {
 
 						this.viewer.scene.removeAllClipVolumes();
@@ -80440,9 +80255,7 @@ ENDSEC
 				["DE", "de"],
 				["JP", "jp"],
 				["ES", "es"],
-				["SE", "se"],
-				["ZH", "zh"],
-				["IT", "it"]
+				["SE", "se"]
 			];
 
 			let elLanguages = $('#potree_languages');
@@ -89234,7 +89047,7 @@ ENDSEC
 				i18n.init({
 					lng: 'en',
 					resGetPath: Potree.resourcePath + '/lang/__lng__/__ns__.json',
-					preload: ['en', 'fr', 'de', 'jp', 'se', 'es', 'zh', 'it'],
+					preload: ['en', 'fr', 'de', 'jp', 'se', 'es'],
 					getAsync: true,
 					debug: false
 				}, function (t) {
@@ -89314,14 +89127,14 @@ ENDSEC
 
 					const file = item.getAsFile();
 
-					const isJson5 = file.name.toLowerCase().endsWith(".json5");
+					const isJson = file.name.toLowerCase().endsWith(".json");
 					const isGeoPackage = file.name.toLowerCase().endsWith(".gpkg");
 
-					if(isJson5){
+					if(isJson){
 						try{
 
 							const text = await file.text();
-							const json = lib.parse(text);
+							const json = JSON.parse(text);
 
 							if(json.type === "Potree"){
 								Potree.loadProject(viewer, json);
