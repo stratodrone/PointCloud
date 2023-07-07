@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Point Cloud Viewer</title>
+    <script src="Potree/build/potree/potree.js"></script>
+    <link rel="stylesheet" href="Potree/build/potree/potree.css">
+</head>
+<body>
+    <div id="potree_render_area"></div>
+    <script>
+        var viewer = new Potree.Viewer(document.getElementById("potree_render_area"));
+
+        Potree.loadPointCloud("myPC/ept-data/0-0-0-0.laz", "0-0-0-0").then(function (pointcloud) {
+            viewer.scene.addPointCloud(pointcloud);
+            viewer.fitToScreen();
+        });
+
+        Potree.loadPointCloud("myPC/ept-data/1-0-0-0.laz", "1-0-0-0").then(function (pointcloud) {
+            viewer.scene.addPointCloud(pointcloud);
+            viewer.fitToScreen();
+        });
+
+        Potree.loadPointCloud("myPC/ept-data/1-0-0-1.laz", "1-0-0-1").then(function (pointcloud) {
+            viewer.scene.addPointCloud(pointcloud);
+            viewer.fitToScreen();
+        });
+
+        Potree.loadPointCloud("myPC/ept-data/1-1-0-1.laz", "1-1-0-1").then(function (pointcloud) {
+            viewer.scene.addPointCloud(pointcloud);
+            viewer.fitToScreen();
+        });
+
+        Potree.loadPointCloud("myPC/ept-data/1-1-1-1.laz", "1-1-1-1").then(function (pointcloud) {
+            viewer.scene.addPointCloud(pointcloud);
+            viewer.fitToScreen();
+        });
+    </script>
+</body>
+</html>
